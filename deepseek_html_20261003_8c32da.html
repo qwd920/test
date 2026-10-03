@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>民国人生模拟器 · AI生成</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  body { background:#f8f9fa; color:#222; padding:20px; max-width:700px; margin:0 auto; min-height:100vh; }
+  .title { text-align:center; font-size:26px; margin:16px 0 4px; color:#333; }
+  .badge {
+    text-align:center; font-size:12px; color:#8a9bab;
+    margin-bottom:14px; letter-spacing:.5px;
+  }
+  .badge.ai { color:#2c3e50; font-weight:600; }
+
+  /* 顶部进度条 */
+  .progress {
+    display:none; position:relative; height:30px;
+    background:#e9ecef; border-radius:10px; overflow:hidden;
+    margin-bottom:16px;
+  }
+  .progress.show { display:block; }
+  .progress-bar {
+    height:100%; width:0%;
+    background:linear-gradient(90deg,#9bb4d0,#2c3e50);
+    transition:width .3s ease;
+  }
+  .progress-text {
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:#333; font-weight:500;
+  }
+
+  .card, .status-wrap, .story-box {
+    background:#fff; border-radius:14px; padding:16px;
+    box-shadow:0 2px 8px #00000012; margin-bottom:16px;
+  }
+  .story-box {
+    padding:20px; line-height:1.75; font-size:16px;
+    white-space:pre-wrap; min-height:100px;
+  }
+  .story-box.thinking { color:#9aa5b1; font-style:italic; }
+
+  .stat-item { margin:9px 0; }
+  .stat-name { display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; color:#444; }
+  .bar-bg { height:14px; background:#e9ecef; border-radius:99px; overflow:hidden; }
+  .bar-fill { height:100%; transition:.3s ease; }
+  .fame{background:#f5b041} .power{background:#e74c3c} .people{background:#3498db} .clique{background:#9b59b6}
+
+  .btn {
+    width:100%; padding:14px 16px; margin:8px 0; border:none; border-radius:12px;
+    background:#fff; box-shadow:0 2px 6px #00000010; font-size:16px;
+    text-align:left; cursor:pointer; display:flex; justify-content:space-between;
+    gap:12px; align-items:flex-start; color:#222; transition:.15s;
+  }
+  .btn:hover:not(:disabled){ background:#f5f8fc; }
+  .btn:active:not(:disabled){ background:#eef2f7; }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn.primary{ background:#2c3e50; color:#fff; justify-content:center; }
+  .btn.primary:hover:not(:disabled){ background:#3a4d63; }
+  .delta{ font-size:12px; color:#999; white-space:nowrap; padding-top:4px; }
+
+  .field { margin-bottom:12px; }
+  .field label { display:block; font-size:13px; color:#666; margin-bottom:5px; }
+  .field input {
+    width:100%; padding:11px 12px; border:1px solid #dfe3e8; border-radius:10px;
+    font-size:15px; background:#fbfcfd; outline:none;
+  }
+  .field input:focus { border-color:#9bb4d0; background:#fff; }
+  .hint { font-size:12px; color:#999; line-height:1.6; margin-top:10px; }
+
+  .topbar { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; padding:0 4px; }
+  .hero { font-size:17px; font-weight:600; color:#2c3e50; }
+  .year { font-size:14px; color:#888; font-variant-numeric:tabular-nums; }
+  .mini { background:none; border:none; color:#aaa; font-size:13px; cursor:pointer; text-decoration:underline; }
+  .end-text { text-align:center; font-size:17px; color:#c0392b; font-weight:bold; line-height:1.8; margin:15px 0; white-space:pre-wrap; }
+  .err { color:#c0392b; font-size:12px; line-height:1.6; text-align:center; padding:4px 0; }
+</style>
+</head>
+<body>
+
+<h1 class="title">民国人生模拟器</h1>
+<div class="badge" id="badge">正在唤醒模型…</div>
+
+<div class="progress" id="progress">
+  <div class="progress-bar" id="progressBar"></div>
+  <span class="progress-text" id="progressText">加载中…</span>
+</div>
+
+<!-- ============ 设置面板 ============ -->
+<div id="setup" class="card">
+  <div class="field">
+    <label>你的姓名</label>
+    <input id="playerName" maxlength="10" placeholder="留空则随机生成" autocomplete="off">
+  </div>
+  <button class="btn primary" id="startBtn">开始人生</button>
+  <p class="hint">
+    模型在后台自动下载，首集约 350MB（会被浏览器缓存，第二次打开秒进）。
+    加载期间可以先玩简化模式，模型就绪后自动切换为 AI 生成。
+  </p>
+</div>
+
+<!-- ============ 游戏面板 ============ -->
+<div id="game" style="display:none">
+  <div class="topbar">
+    <span class="hero" id="heroName"></span>
+    <span class="year" id="yearLabel">1911 年</span>
+  </div>
+
+  <div class="status-wrap">
+    <div class="stat-item">
+      <div class="stat-name"><span>声望</span><span id="fame-num">20</span></div>
+      <div class="bar-bg"><div class="bar-fill fame" id="fame-bar" style="width:20%"></div></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-name"><span>兵权</span><span id="power-num">15</span></div>
+      <div class="bar-bg"><div class="bar-fill power" id="power-bar" style="width:15%"></div></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-name"><span>民心</span><span id="people-num">10</span></div>
+      <div class="bar-bg"><div class="bar-fill people" id="people-bar" style="width:10%"></div></div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-name"><span>派系</span><span id="clique-num">30</span></div>
+      <div class="bar-bg"><div class="bar-fill clique" id="clique-bar" style="width:30%"></div></div>
+    </div>
+  </div>
+
+  <div class="story-box" id="story"></div>
+  <div id="btn-group"></div>
+  <div class="end-text" id="end"></div>
+  <div style="text-align:center;margin-top:14px">
+    <button class="mini" id="restartBtn" style="display:none">重新开始</button>
+  </div>
+</div>
+
+<script type="module">
+/* ============================================================
+   0. 工具与状态
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const KEYS = ['fame', 'power', 'people', 'clique'];
+const CN = { fame:'声望', power:'兵权', people:'民心', clique:'派系' };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+
+const SURNAMES = ['张','王','李','刘','陈','杨','黄','赵','周','吴','徐','孙','马','朱','胡','郭','何','高','林','罗','郑','梁','谢','宋','唐','许','韩','冯','邓','曹','彭','曾','萧','田','董','袁','潘','于','蒋','蔡'];
+const GIVEN = ['慕远','砚秋','仲卿','伯衡','季常','志清','克强','济民','绍武','振邦','云卿','少白','仲元','叔平','景明','耀庭','子昂','世昌','汉卿','梦熊','守义','允恭','文渊','雨农','仲甫','默存','雪松','清源','伯韬','季陶','子文','铁生'];
+const randomName = () => pick(SURNAMES) + pick(GIVEN);
+
+const S = {
+  name: '',
+  year: 1911,
+  fame: 20, power: 15, people: 10, clique: 30,
+  flags: [],
+  ended: false
+};
+
+const AI = {
+  engine: null,
+  ready: false,
+  loading: false,
+  generating: false
+};
+
+// 上下文（只保留最近几段，避免小模型上下文过长变慢）
+const context = [];
+
+/* ============================================================
+   1. 立刻开始加载模型
+   ============================================================ */
+function showProgress() { $('progress').classList.add('show'); }
+function hideProgress() { $('progress').classList.remove('show'); }
+
+function updateProgress(ratio, text) {
+  const p = Math.max(0, Math.min(100, Math.round(ratio * 100)));
+  $('progressBar').style.width = p + '%';
+  $('progressText').textContent = text || ('加载中 ' + p + '%');
+}
+
+function setBadge(text, isAI) {
+  const b = $('badge');
+  b.textContent = text;
+  b.classList.toggle('ai', !!isAI);
+}
+
+(async function bootAI() {
+  if (!navigator.gpu) {
+    setBadge('浏览器不支持 WebGPU · 使用简化模式');
+    return;
+  }
+  AI.loading = true;
+  showProgress();
+  updateProgress(0, '正在拉取模型索引…');
+
+  try {
+    const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
+
+    AI.engine = await CreateMLCEngine('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', {
+      initProgressCallback: (r) => {
+        // r: { progress, timeElapsed, text }
+        updateProgress(r.progress || 0, r.text || '加载中…');
+      }
+    });
+
+    AI.ready = true;
+    AI.loading = false;
+    hideProgress();
+    setBadge('AI 生成模式 · 已就绪', true);
+  } catch (e) {
+    console.error('模型加载失败:', e);
+    AI.loading = false;
+    hideProgress();
+    setBadge('模型加载失败 · 使用简化模式');
+  }
+})();
+
+/* ============================================================
+   2. AI 生成场景
+   ============================================================ */
+const SYS_PROMPT =
+`你是《民国人生模拟器》的游戏主持人。根据玩家的处境，写一段剧情，然后给出三个选项。
+
+写作要求：
+- 用第二人称"你"
+- 剧情 60-100 字，有画面感，自然带出年份与时代气息
+- 三个选项各 8-16 字，方向彼此不同（例如：强硬 / 笼络 / 观望）
+- 必须严格按下面格式输出，不要任何多余文字、不要解释、不要引号：
+
+【剧情】这里写剧情正文。
+【1】这里写第一个选项。
+【2】这里写第二个选项。
+【3】这里写第三个选项。`;
+
+function buildPrompt(playerAction) {
+  const recent = context.slice(-2).map((c, i) =>
+    `第${i + 1}段：${c.story}\n玩家选择：${c.choice}`
+  ).join('\n');
+
+  return [
+    `年份：${S.year}年`,
+    `当前数值：声望${S.fame} 兵权${S.power} 民心${S.people} 派系${S.clique}`,
+    recent ? `前情：\n${recent}` : '',
+    `玩家行动：${playerAction}`,
+    `请写出下一幕。`
+  ].filter(Boolean).join('\n');
+}
+
+async function generateScene(playerAction) {
+  if (!AI.ready || !AI.engine) return null;
+
+  let buf = '';
+  const stream = await AI.engine.chat.completions.create({
+    messages: [
+      { role: 'system', content: SYS_PROMPT },
+      { role: 'user', content: buildPrompt(playerAction) }
+    ],
+    temperature: 0.85,
+    top_p: 0.9,
+    max_tokens: 240,
+    stream: true
+  });
+
+  const storyEl = $('story');
+  storyEl.classList.add('thinking');
+  storyEl.textContent = '正在推演…';
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices?.[0]?.delta?.content || '';
+    buf += delta;
+    // 实时把剧情部分显示出来
+    const m = buf.match(/【剧情】([\s\S]*?)(?=【\s*1\s*】|$)/);
+    if (m && m[1].trim()) {
+      storyEl.classList.remove('thinking');
+      storyEl.textContent = m[1].trim();
+    }
+  }
+
+  storyEl.classList.remove('thinking');
+  return parseScene(buf);
+}
+
+function parseScene(raw) {
+  let story = '';
+  let options = [];
+
+  // 剧情
+  const sm = raw.match(/【剧情】([\s\S]*?)(?=【\s*1\s*】|$)/);
+  if (sm) story = sm[1].trim();
+
+  // 选项：【1】【2】【3】
+  for (let i = 1; i <= 3; i++) {
+    const re = new RegExp('【\\s*' + i + '\\s*】([\\s\\S]*?)(?=【\\s*' + (i + 1) + '\\s*】|$)');
+    const mm = raw.match(re);
+    if (mm && mm[1].trim()) options.push(mm[1].trim());
+  }
+
+  // 兜底：尝试 "1. xxx" 格式
+  if (options.length < 3) {
+    const found = [];
+    for (const line of raw.split('\n')) {
+      const mm = line.match(/^\s*[1-3][.、)．]\s*(.+)$/);
+      if (mm) found.push(mm[1].trim());
+    }
+    if (found.length >= 3) options = found.slice(0, 3);
+  }
+
+  // 再兜底：给默认选项
+  while (options.length < 3) {
+    options.push(pick([
+      '采取强硬手段，以力破局',
+      '结交各方，寻求外援',
+      '稳固根基，静待时机'
+    ]));
+  }
+  options = options.slice(0, 3).map(o => o.replace(/^["'“”]|["'“”]$/g, '').slice(0, 24));
+
+  if (!story) story = raw.replace(/【[^】]*】/g, '').trim().slice(0, 220) || '时局变幻，你必须做出抉择。';
+
+  return { story, options };
+}
+
+/* ============================================================
+   3. 简化模式（AI 未就绪时的兜底剧情）
+   ============================================================ */
+const FALLBACK = [
+  {
+    text: '{year}年，时局动荡。电报一封接一封送到案头，每一封都关系到身家性命。',
+    opts: ['果断出兵，抢占先机', '联络各方，稳固盟友', '静观其变，保存实力']
+  },
+  {
+    text: '{year}年。军中粮饷见底，各方势力都在暗中拉拢你。一个选择，可能决定未来十年的位置。',
+    opts: ['接受拉拢，扩充人马', '拒绝依附，独立自主', '两面周旋，留条后路']
+  },
+  {
+    text: '{year}年的一个深夜，一位旧友秘密来访，带来一份不能见光的密约。',
+    opts: ['签下密约，铤而走险', '婉言拒绝，划清界限', '暂不表态，探其虚实']
+  },
+  {
+    text: '{year}年，报馆连日刊文抨击你的施政。街上已有学生聚集，气氛紧张。',
+    opts: ['封报抓人，强力压制', '约见主笔，好言安抚', '公开回应，澄清是非']
+  }
+];
+
+function renderFallbackScene() {
+  const f = pick(FALLBACK);
+  const story = f.text.replace('{year}', S.year);
+  return { story, options: f.opts };
+}
+
+/* ============================================================
+   4. 数值计算（AI 只写文本，数值由程序算）
+   ============================================================ */
+const KW = {
+  power: ['兵','军','战','攻','打','武','枪','炮','部队','嫡系','扩军','出征','征讨','缴械','收编','兵变','强硬','压制','镇压','铁腕'],
+  people: ['民','百姓','赈','减','抚','善','士绅','办学','兴修','救灾','水利','赋','税','粮','饥','安抚','缓和','民生'],
+  fame: ['名','声','报','舆论','宣言','通电','发表','辞','请缨','演讲','文章','题字','澄清','公开'],
+  clique: ['派','系','党','结','盟','拉拢','联合','联络','依附','投','输诚','靠拢','共','周旋','结交']
+};
+
+function rollDelta(optionText) {
+  const score = { fame:0, power:0, people:0, clique:0 };
+
+  for (const k of KEYS) {
+    for (const w of KW[k]) {
+      if (optionText.includes(w)) score[k] += 3;
+    }
+  }
+
+  // 主属性：得分最高的；若全为 0 则随机
+  const sorted = KEYS.map(k => ({ k, v: score[k] })).sort((a, b) => b.v - a.v);
+  const main = sorted[0].v > 0 ? sorted[0].k : pick(KEYS);
+
+  // 副属性：次高的，或随机一个非主属性
+  let sub = sorted[1] && sorted[1].k !== main && sorted[1].v > 0
+    ? sorted[1].k
+    : pick(KEYS.filter(k => k !== main));
+
+  // 代价：随机一个非主属性
+  const cost = pick(KEYS.filter(k => k !== main));
+
+  const d = { fame:0, power:0, people:0, clique:0 };
+  d[main] += 6 + randInt(0, 8);
+  if (sub !== main && sub !== cost) d[sub] += 2 + randInt(0, 4);
+  d[cost] -= 4 + randInt(0, 8);
+
+  return d;
+}
+
+/* ============================================================
+   5. 游戏逻辑
+   ============================================================ */
+function clampAll() {
+  for (const k of KEYS) S[k] = Math.max(0, Math.min(100, Math.round(S[k] || 0)));
+}
+
+function updateUI() {
+  clampAll();
+  for (const k of KEYS) {
+    $(k + '-num').textContent = S[k];
+    $(k + '-bar').style.width = S[k] + '%';
+  }
+  $('heroName').textContent = S.name;
+  $('yearLabel').textContent = S.year + ' 年';
+}
+
+function deltaText(d) {
+  return KEYS.filter(k => d[k])
+    .map(k => CN[k] + (d[k] > 0 ? '+' : '') + d[k]).join('  ');
+}
+
+function applyDelta(d) {
+  for (const k of KEYS) {
+    const v = Number(d[k]);
+    if (!isNaN(v)) S[k] += v;
+  }
+}
+
+function checkEnding() {
+  if (S.year >= 1949) return endingByStats('1949年，大局已定。');
+  if (S.power <= 0 && S.fame <= 0) {
+    return { title:'【黯然出局】',
+      body:'你既无声望，又无兵权，在乱世中彻底失去了立足之地。\n历史的车轮碾过，你只留下一行模糊的注脚。' };
+  }
+  if (S.people <= 0) {
+    return { title:'【民心尽失】',
+      body:'民怨沸腾，众叛亲离。一个清晨，你发现卫队已经换上了别人的旗号。\n得民心者得天下，失民心者，连方寸之地也守不住。' };
+  }
+  return null;
+}
+
+function endingByStats(prefix) {
+  const { fame, power, people, clique } = S;
+  const total = fame + power + people + clique;
+  let title, body;
+
+  if (S.flags.includes('流亡')) {
+    return { title:'【海外流亡结局】',
+      body: prefix + '\n\n你登上了南下的飞机，此后半生寓居异国。\n每到夜深，总想起当年长江上的雾。' };
+  }
+
+  if (power >= 70 && people >= 70 && fame >= 70) {
+    title = '【中兴名臣结局】';
+    body = '你手握重兵而心系黎庶，声望遍及朝野。\n后人修史，将你与那些力挽狂澜的名字并列。';
+  } else if (power >= 70 && people < 30) {
+    title = '【铁腕军阀结局】';
+    body = '你的军队令行禁止，你的防区无人敢犯。\n只是百姓提起你时，眼里只有畏惧，没有敬爱。';
+  } else if (fame >= 70 && power < 30) {
+    title = '【清流虚位结局】';
+    body = '你名满天下，却政令不出府门。\n你成了这个时代最体面的摆设。';
+  } else if (clique >= 70) {
+    title = '【党国柱石结局】';
+    body = '你在派系经营上登峰造极，人脉遍布朝野。\n只是夜深人静时，你偶尔想不起最初想做什么。';
+  } else if (total >= 220) {
+    title = '【乱世能臣结局】';
+    body = '四个维度上你都拿到了不错的分数。不算顶尖，却也稳稳当当地走完了这段乱世。';
+  } else if (total <= 100) {
+    title = '【碌碌无闻结局】';
+    body = '几十年过去，你始终站在舞台边缘。\n历史书上不会有你的名字，但你的后代记得你。';
+  } else {
+    title = '【浮沉半生结局】';
+    body = '起起落落，几度沉浮。你既没有登顶，也没有坠底。\n这大概就是大多数人的一生。';
+  }
+  return { title, body: prefix + '\n\n' + body };
+}
+
+/* ============================================================
+   6. 渲染与推进
+   ============================================================ */
+let currentOptions = [];
+
+function renderStory(text, thinking) {
+  const el = $('story');
+  el.textContent = text;
+  el.classList.toggle('thinking', !!thinking);
+}
+
+function renderOptions(options) {
+  currentOptions = options.map(text => ({ text, delta: rollDelta(text) }));
+
+  const wrap = $('btn-group');
+  wrap.innerHTML = '';
+  $('end').textContent = '';
+  $('restartBtn').style.display = 'none';
+
+  currentOptions.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'btn';
+
+    const left = document.createElement('span');
+    left.textContent = (i + 1) + '. ' + opt.text;
+
+    const right = document.createElement('span');
+    right.className = 'delta';
+    right.textContent = deltaText(opt.delta);
+
+    btn.appendChild(left);
+    btn.appendChild(right);
+    btn.onclick = () => choose(opt);
+    wrap.appendChild(btn);
+  });
+}
+
+async function step(playerAction) {
+  if (S.ended) return;
+
+  if (AI.ready) {
+    // ===== AI 模式 =====
+    try {
+      const scene = await generateScene(playerAction);
+      renderStory(scene.story, false);
+      renderOptions(scene.options);
+
+      if (playerAction) {
+        context.push({ story: scene.story, choice: playerAction });
+        if (context.length > 6) context.shift();
+      }
+      return;
+    } catch (e) {
+      console.error('AI 生成失败，转兜底:', e);
+      setBadge('AI 生成异常 · 使用简化模式');
+    }
+  }
+
+  // ===== 简化模式 =====
+  const scene = renderFallbackScene();
+  renderStory(scene.story, false);
+  renderOptions(scene.options);
+  if (playerAction) {
+    context.push({ story: scene.story, choice: playerAction });
+    if (context.length > 6) context.shift();
+  }
+}
+
+function choose(opt) {
+  if (S.ended) return;
+  if (AI.generating) return;
+
+  applyDelta(opt.delta);
+  S.year += randInt(1, 3);
+  updateUI();
+
+  const ending = checkEnding();
+  if (ending) { endGame(ending); return; }
+
+  // 立刻清空选项，防止连点
+  $('btn-group').innerHTML = '';
+  renderStory('正在推演…', true);
+
+  AI.generating = true;
+  step(opt.text).finally(() => { AI.generating = false; });
+}
+
+function endGame(e) {
+  S.ended = true;
+  renderStory('—— 终 ——', false);
+  $('btn-group').innerHTML = '';
+  $('end').textContent = e.title + '\n\n' + e.body;
+  $('restartBtn').style.display = 'inline-block';
+}
+
+/* ============================================================
+   7. 启动
+   ============================================================ */
+$('startBtn').onclick = () => {
+  const input = $('playerName').value.trim();
+  S.name = input || randomName();
+  $('setup').style.display = 'none';
+  $('game').style.display = 'block';
+  updateUI();
+
+  if (AI.loading) {
+    setBadge('模型加载中 · 先用简化模式，就绪后自动切换');
+  } else if (AI.ready) {
+    setBadge('AI 生成模式 · 已就绪', true);
+  }
+
+  renderStory('正在推演…', true);
+  AI.generating = true;
+  step('【开局】1911年秋，辛亥革命爆发，我（' + S.name + '）正在日本陆军士官学校求学。请从这里开始。')
+    .finally(() => { AI.generating = false; });
+};
+
+$('restartBtn').onclick = () => location.reload();
+
+updateUI();
+</script>
+</body>
+</html>
