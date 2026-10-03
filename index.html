@@ -4,42 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>民国人生模拟器 · AI生成</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎖️</text></svg>">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
   body { background:#f8f9fa; color:#222; padding:20px; max-width:700px; margin:0 auto; min-height:100vh; }
   .title { text-align:center; font-size:26px; margin:16px 0 4px; color:#333; }
-  .badge {
-    text-align:center; font-size:12px; color:#8a9bab;
-    margin-bottom:14px; letter-spacing:.5px;
-  }
+  .badge { text-align:center; font-size:12px; color:#8a9bab; margin-bottom:14px; letter-spacing:.5px; }
   .badge.ai { color:#2c3e50; font-weight:600; }
-
-  /* 顶部进度条 */
-  .progress {
-    display:none; position:relative; height:30px;
-    background:#e9ecef; border-radius:10px; overflow:hidden;
-    margin-bottom:16px;
-  }
+  .progress { display:none; position:relative; height:30px; background:#e9ecef; border-radius:10px; overflow:hidden; margin-bottom:8px; }
   .progress.show { display:block; }
-  .progress-bar {
-    height:100%; width:0%;
-    background:linear-gradient(90deg,#9bb4d0,#2c3e50);
-    transition:width .3s ease;
-  }
-  .progress-text {
-    position:absolute; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    font-size:12px; color:#333; font-weight:500;
-  }
+  .progress-bar { height:100%; width:0%; background:linear-gradient(90deg,#9bb4d0,#2c3e50); transition:width .3s ease; }
+  .progress-text { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#333; font-weight:500; }
+  .skip-row { display:none; text-align:center; margin-bottom:14px; }
+  .skip-row.show { display:block; }
+  .skip-row button { background:none; border:none; color:#8a9bab; font-size:12px; text-decoration:underline; cursor:pointer; }
 
-  .card, .status-wrap, .story-box {
-    background:#fff; border-radius:14px; padding:16px;
-    box-shadow:0 2px 8px #00000012; margin-bottom:16px;
-  }
-  .story-box {
-    padding:20px; line-height:1.75; font-size:16px;
-    white-space:pre-wrap; min-height:100px;
-  }
+  .card, .status-wrap, .story-box { background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 8px #00000012; margin-bottom:16px; }
+  .story-box { padding:20px; line-height:1.75; font-size:16px; white-space:pre-wrap; min-height:100px; }
   .story-box.thinking { color:#9aa5b1; font-style:italic; }
 
   .stat-item { margin:9px 0; }
@@ -48,12 +29,7 @@
   .bar-fill { height:100%; transition:.3s ease; }
   .fame{background:#f5b041} .power{background:#e74c3c} .people{background:#3498db} .clique{background:#9b59b6}
 
-  .btn {
-    width:100%; padding:14px 16px; margin:8px 0; border:none; border-radius:12px;
-    background:#fff; box-shadow:0 2px 6px #00000010; font-size:16px;
-    text-align:left; cursor:pointer; display:flex; justify-content:space-between;
-    gap:12px; align-items:flex-start; color:#222; transition:.15s;
-  }
+  .btn { width:100%; padding:14px 16px; margin:8px 0; border:none; border-radius:12px; background:#fff; box-shadow:0 2px 6px #00000010; font-size:16px; text-align:left; cursor:pointer; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; color:#222; transition:.15s; }
   .btn:hover:not(:disabled){ background:#f5f8fc; }
   .btn:active:not(:disabled){ background:#eef2f7; }
   .btn:disabled{ opacity:.45; cursor:not-allowed; }
@@ -63,10 +39,7 @@
 
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:13px; color:#666; margin-bottom:5px; }
-  .field input {
-    width:100%; padding:11px 12px; border:1px solid #dfe3e8; border-radius:10px;
-    font-size:15px; background:#fbfcfd; outline:none;
-  }
+  .field input { width:100%; padding:11px 12px; border:1px solid #dfe3e8; border-radius:10px; font-size:15px; background:#fbfcfd; outline:none; }
   .field input:focus { border-color:#9bb4d0; background:#fff; }
   .hint { font-size:12px; color:#999; line-height:1.6; margin-top:10px; }
 
@@ -75,7 +48,6 @@
   .year { font-size:14px; color:#888; font-variant-numeric:tabular-nums; }
   .mini { background:none; border:none; color:#aaa; font-size:13px; cursor:pointer; text-decoration:underline; }
   .end-text { text-align:center; font-size:17px; color:#c0392b; font-weight:bold; line-height:1.8; margin:15px 0; white-space:pre-wrap; }
-  .err { color:#c0392b; font-size:12px; line-height:1.6; text-align:center; padding:4px 0; }
 </style>
 </head>
 <body>
@@ -87,8 +59,10 @@
   <div class="progress-bar" id="progressBar"></div>
   <span class="progress-text" id="progressText">加载中…</span>
 </div>
+<div class="skip-row" id="skipRow">
+  <button id="skipBtn">不等了，直接玩简化模式 →</button>
+</div>
 
-<!-- ============ 设置面板 ============ -->
 <div id="setup" class="card">
   <div class="field">
     <label>你的姓名</label>
@@ -96,12 +70,11 @@
   </div>
   <button class="btn primary" id="startBtn">开始人生</button>
   <p class="hint">
-    模型在后台自动下载，首集约 350MB（会被浏览器缓存，第二次打开秒进）。
+    模型在后台下载（首次约 350MB，浏览器会缓存，第二次秒进）。
     加载期间可以先玩简化模式，模型就绪后自动切换为 AI 生成。
   </p>
 </div>
 
-<!-- ============ 游戏面板 ============ -->
 <div id="game" style="display:none">
   <div class="topbar">
     <span class="hero" id="heroName"></span>
@@ -145,8 +118,8 @@ const CN = { fame:'声望', power:'兵权', people:'民心', clique:'派系' };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
-const SURNAMES = ['张','王','李','刘','陈','杨','黄','赵','周','吴','徐','孙','马','朱','胡','郭','何','高','林','罗','郑','梁','谢','宋','唐','许','韩','冯','邓','曹','彭','曾','萧','田','董','袁','潘','于','蒋','蔡'];
-const GIVEN = ['慕远','砚秋','仲卿','伯衡','季常','志清','克强','济民','绍武','振邦','云卿','少白','仲元','叔平','景明','耀庭','子昂','世昌','汉卿','梦熊','守义','允恭','文渊','雨农','仲甫','默存','雪松','清源','伯韬','季陶','子文','铁生'];
+const SURNAMES = ['张','王','李','刘','陈','杨','黄','赵','周','吴','徐','孙','马','朱','胡','郭','何','高','林','罗','郑','梁','谢','宋','唐','许','韩','冯','邓','曹','彭','曾','萧','田','董','袁','潘','于','蔡','余','杜','叶'];
+const GIVEN = ['慕远','砚秋','仲卿','伯衡','季常','志清','克强','济民','绍武','振邦','云卿','少白','仲元','叔平','景明','耀庭','子昂','世昌','汉卿','梦熊','守义','允恭','文渊','雨农','仲甫','默存','雪松','清源','伯韬','季陶','子文','铁生','健侯','啸天','沛霖','怀瑾','慕韩','汝舟'];
 const randomName = () => pick(SURNAMES) + pick(GIVEN);
 
 const S = {
@@ -161,17 +134,19 @@ const AI = {
   engine: null,
   ready: false,
   loading: false,
-  generating: false
+  generating: false,
+  gaveUp: false
 };
 
-// 上下文（只保留最近几段，避免小模型上下文过长变慢）
 const context = [];
 
 /* ============================================================
-   1. 立刻开始加载模型
+   1. 后台加载模型（用 hf-mirror 镜像）
    ============================================================ */
 function showProgress() { $('progress').classList.add('show'); }
 function hideProgress() { $('progress').classList.remove('show'); }
+function showSkip() { $('skipRow').classList.add('show'); }
+function hideSkip() { $('skipRow').classList.remove('show'); }
 
 function updateProgress(ratio, text) {
   const p = Math.max(0, Math.min(100, Math.round(ratio * 100)));
@@ -185,34 +160,82 @@ function setBadge(text, isAI) {
   b.classList.toggle('ai', !!isAI);
 }
 
+function giveUpAI(msg) {
+  if (AI.gaveUp) return;
+  AI.gaveUp = true;
+  AI.loading = false;
+  hideProgress();
+  hideSkip();
+  setBadge(msg || '使用简化模式');
+}
+
+// 用户点"不等了"
+$('skipBtn').onclick = () => giveUpAI('已跳过 AI 加载 · 使用简化模式');
+
 (async function bootAI() {
   if (!navigator.gpu) {
     setBadge('浏览器不支持 WebGPU · 使用简化模式');
     return;
   }
+
   AI.loading = true;
   showProgress();
   updateProgress(0, '正在拉取模型索引…');
+  showSkip();
+
+  // 40 秒无实质进展，自动提示可跳过
+  let lastProgress = 0;
+  const stallTimer = setInterval(() => {
+    if (!AI.loading || AI.ready) return clearInterval(stallTimer);
+    if (lastProgress === 0) {
+      showSkip();
+      updateProgress(0, '网络较慢，可点下方链接直接玩简化模式');
+    }
+  }, 15000);
 
   try {
-    const { CreateMLCEngine } = await import('https://esm.run/@mlc-ai/web-llm');
+    const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+    const { CreateMLCEngine, modelLibURLPrefix, modelVersion } = webllm;
+
+    // 关键：用 hf-mirror.com 替换 huggingface.co
+    const appConfig = {
+      model_list: [
+        {
+          model: "https://hf-mirror.com/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+          model_id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+          model_lib: modelLibURLPrefix + modelVersion + "/Qwen2.5-0.5B-Instruct-q4f16_1-ctx4k_cs1k-webgpu.wasm",
+          vram_required_MB: 944,
+          low_resource_required: false,
+          overrides: {
+            context_window_size: 4096,
+            prefill_chunk_size: 1024
+          }
+        }
+      ]
+    };
 
     AI.engine = await CreateMLCEngine('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', {
+      appConfig,
       initProgressCallback: (r) => {
-        // r: { progress, timeElapsed, text }
-        updateProgress(r.progress || 0, r.text || '加载中…');
+        if (r.progress > lastProgress) lastProgress = r.progress;
+        let label = r.text || '加载中…';
+        label = label.replace(/Fetching param cache.*?(\d+)%/i, '下载模型权重 $1%');
+        label = label.replace(/Loading model from cache.*/i, '从缓存读取模型…');
+        label = label.replace(/Loading model.*/i, '初始化模型…');
+        updateProgress(r.progress || 0, label);
       }
     });
 
     AI.ready = true;
     AI.loading = false;
+    clearInterval(stallTimer);
     hideProgress();
+    hideSkip();
     setBadge('AI 生成模式 · 已就绪', true);
   } catch (e) {
     console.error('模型加载失败:', e);
-    AI.loading = false;
-    hideProgress();
-    setBadge('模型加载失败 · 使用简化模式');
+    clearInterval(stallTimer);
+    giveUpAI('模型加载失败 · 使用简化模式');
   }
 })();
 
@@ -269,7 +292,6 @@ async function generateScene(playerAction) {
   for await (const chunk of stream) {
     const delta = chunk.choices?.[0]?.delta?.content || '';
     buf += delta;
-    // 实时把剧情部分显示出来
     const m = buf.match(/【剧情】([\s\S]*?)(?=【\s*1\s*】|$)/);
     if (m && m[1].trim()) {
       storyEl.classList.remove('thinking');
@@ -285,18 +307,15 @@ function parseScene(raw) {
   let story = '';
   let options = [];
 
-  // 剧情
   const sm = raw.match(/【剧情】([\s\S]*?)(?=【\s*1\s*】|$)/);
   if (sm) story = sm[1].trim();
 
-  // 选项：【1】【2】【3】
   for (let i = 1; i <= 3; i++) {
     const re = new RegExp('【\\s*' + i + '\\s*】([\\s\\S]*?)(?=【\\s*' + (i + 1) + '\\s*】|$)');
     const mm = raw.match(re);
     if (mm && mm[1].trim()) options.push(mm[1].trim());
   }
 
-  // 兜底：尝试 "1. xxx" 格式
   if (options.length < 3) {
     const found = [];
     for (const line of raw.split('\n')) {
@@ -306,7 +325,6 @@ function parseScene(raw) {
     if (found.length >= 3) options = found.slice(0, 3);
   }
 
-  // 再兜底：给默认选项
   while (options.length < 3) {
     options.push(pick([
       '采取强硬手段，以力破局',
@@ -322,35 +340,28 @@ function parseScene(raw) {
 }
 
 /* ============================================================
-   3. 简化模式（AI 未就绪时的兜底剧情）
+   3. 简化模式兜底
    ============================================================ */
 const FALLBACK = [
-  {
-    text: '{year}年，时局动荡。电报一封接一封送到案头，每一封都关系到身家性命。',
-    opts: ['果断出兵，抢占先机', '联络各方，稳固盟友', '静观其变，保存实力']
-  },
-  {
-    text: '{year}年。军中粮饷见底，各方势力都在暗中拉拢你。一个选择，可能决定未来十年的位置。',
-    opts: ['接受拉拢，扩充人马', '拒绝依附，独立自主', '两面周旋，留条后路']
-  },
-  {
-    text: '{year}年的一个深夜，一位旧友秘密来访，带来一份不能见光的密约。',
-    opts: ['签下密约，铤而走险', '婉言拒绝，划清界限', '暂不表态，探其虚实']
-  },
-  {
-    text: '{year}年，报馆连日刊文抨击你的施政。街上已有学生聚集，气氛紧张。',
-    opts: ['封报抓人，强力压制', '约见主笔，好言安抚', '公开回应，澄清是非']
-  }
+  { text: '{year}年，时局动荡。电报一封接一封送到案头，每一封都关系到身家性命。',
+    opts: ['果断出兵，抢占先机', '联络各方，稳固盟友', '静观其变，保存实力'] },
+  { text: '{year}年。军中粮饷见底，各方势力都在暗中拉拢你。一个选择，可能决定未来十年的位置。',
+    opts: ['接受拉拢，扩充人马', '拒绝依附，独立自主', '两面周旋，留条后路'] },
+  { text: '{year}年的一个深夜，一位旧友秘密来访，带来一份不能见光的密约。',
+    opts: ['签下密约，铤而走险', '婉言拒绝，划清界限', '暂不表态，探其虚实'] },
+  { text: '{year}年，报馆连日刊文抨击你的施政。街上已有学生聚集，气氛紧张。',
+    opts: ['封报抓人，强力压制', '约见主笔，好言安抚', '公开回应，澄清是非'] },
+  { text: '{year}年。一位老部下载誉而归，请求你为他麾下的伤残弟兄拨一笔抚恤。',
+    opts: ['如数拨付，安抚军心', '按例减半，节省开支', '当众褒奖，钱粮从缓'] }
 ];
 
 function renderFallbackScene() {
   const f = pick(FALLBACK);
-  const story = f.text.replace('{year}', S.year);
-  return { story, options: f.opts };
+  return { story: f.text.replace('{year}', S.year), options: f.opts };
 }
 
 /* ============================================================
-   4. 数值计算（AI 只写文本，数值由程序算）
+   4. 数值计算
    ============================================================ */
 const KW = {
   power: ['兵','军','战','攻','打','武','枪','炮','部队','嫡系','扩军','出征','征讨','缴械','收编','兵变','强硬','压制','镇压','铁腕'],
@@ -361,39 +372,27 @@ const KW = {
 
 function rollDelta(optionText) {
   const score = { fame:0, power:0, people:0, clique:0 };
-
   for (const k of KEYS) {
-    for (const w of KW[k]) {
-      if (optionText.includes(w)) score[k] += 3;
-    }
+    for (const w of KW[k]) if (optionText.includes(w)) score[k] += 3;
   }
-
-  // 主属性：得分最高的；若全为 0 则随机
   const sorted = KEYS.map(k => ({ k, v: score[k] })).sort((a, b) => b.v - a.v);
   const main = sorted[0].v > 0 ? sorted[0].k : pick(KEYS);
-
-  // 副属性：次高的，或随机一个非主属性
   let sub = sorted[1] && sorted[1].k !== main && sorted[1].v > 0
     ? sorted[1].k
     : pick(KEYS.filter(k => k !== main));
-
-  // 代价：随机一个非主属性
   const cost = pick(KEYS.filter(k => k !== main));
 
   const d = { fame:0, power:0, people:0, clique:0 };
   d[main] += 6 + randInt(0, 8);
   if (sub !== main && sub !== cost) d[sub] += 2 + randInt(0, 4);
   d[cost] -= 4 + randInt(0, 8);
-
   return d;
 }
 
 /* ============================================================
    5. 游戏逻辑
    ============================================================ */
-function clampAll() {
-  for (const k of KEYS) S[k] = Math.max(0, Math.min(100, Math.round(S[k] || 0)));
-}
+function clampAll() { for (const k of KEYS) S[k] = Math.max(0, Math.min(100, Math.round(S[k] || 0))); }
 
 function updateUI() {
   clampAll();
@@ -406,16 +405,10 @@ function updateUI() {
 }
 
 function deltaText(d) {
-  return KEYS.filter(k => d[k])
-    .map(k => CN[k] + (d[k] > 0 ? '+' : '') + d[k]).join('  ');
+  return KEYS.filter(k => d[k]).map(k => CN[k] + (d[k] > 0 ? '+' : '') + d[k]).join('  ');
 }
 
-function applyDelta(d) {
-  for (const k of KEYS) {
-    const v = Number(d[k]);
-    if (!isNaN(v)) S[k] += v;
-  }
-}
+function applyDelta(d) { for (const k of KEYS) { const v = Number(d[k]); if (!isNaN(v)) S[k] += v; } }
 
 function checkEnding() {
   if (S.year >= 1949) return endingByStats('1949年，大局已定。');
@@ -434,33 +427,24 @@ function endingByStats(prefix) {
   const { fame, power, people, clique } = S;
   const total = fame + power + people + clique;
   let title, body;
-
   if (S.flags.includes('流亡')) {
     return { title:'【海外流亡结局】',
       body: prefix + '\n\n你登上了南下的飞机，此后半生寓居异国。\n每到夜深，总想起当年长江上的雾。' };
   }
-
   if (power >= 70 && people >= 70 && fame >= 70) {
-    title = '【中兴名臣结局】';
-    body = '你手握重兵而心系黎庶，声望遍及朝野。\n后人修史，将你与那些力挽狂澜的名字并列。';
+    title = '【中兴名臣结局】'; body = '你手握重兵而心系黎庶，声望遍及朝野。\n后人修史，将你与那些力挽狂澜的名字并列。';
   } else if (power >= 70 && people < 30) {
-    title = '【铁腕军阀结局】';
-    body = '你的军队令行禁止，你的防区无人敢犯。\n只是百姓提起你时，眼里只有畏惧，没有敬爱。';
+    title = '【铁腕军阀结局】'; body = '你的军队令行禁止，你的防区无人敢犯。\n只是百姓提起你时，眼里只有畏惧，没有敬爱。';
   } else if (fame >= 70 && power < 30) {
-    title = '【清流虚位结局】';
-    body = '你名满天下，却政令不出府门。\n你成了这个时代最体面的摆设。';
+    title = '【清流虚位结局】'; body = '你名满天下，却政令不出府门。\n你成了这个时代最体面的摆设。';
   } else if (clique >= 70) {
-    title = '【党国柱石结局】';
-    body = '你在派系经营上登峰造极，人脉遍布朝野。\n只是夜深人静时，你偶尔想不起最初想做什么。';
+    title = '【党国柱石结局】'; body = '你在派系经营上登峰造极，人脉遍布朝野。\n只是夜深人静时，你偶尔想不起最初想做什么。';
   } else if (total >= 220) {
-    title = '【乱世能臣结局】';
-    body = '四个维度上你都拿到了不错的分数。不算顶尖，却也稳稳当当地走完了这段乱世。';
+    title = '【乱世能臣结局】'; body = '四个维度上你都拿到了不错的分数。不算顶尖，却也稳稳当当地走完了这段乱世。';
   } else if (total <= 100) {
-    title = '【碌碌无闻结局】';
-    body = '几十年过去，你始终站在舞台边缘。\n历史书上不会有你的名字，但你的后代记得你。';
+    title = '【碌碌无闻结局】'; body = '几十年过去，你始终站在舞台边缘。\n历史书上不会有你的名字，但你的后代记得你。';
   } else {
-    title = '【浮沉半生结局】';
-    body = '起起落落，几度沉浮。你既没有登顶，也没有坠底。\n这大概就是大多数人的一生。';
+    title = '【浮沉半生结局】'; body = '起起落落，几度沉浮。你既没有登顶，也没有坠底。\n这大概就是大多数人的一生。';
   }
   return { title, body: prefix + '\n\n' + body };
 }
@@ -468,8 +452,6 @@ function endingByStats(prefix) {
 /* ============================================================
    6. 渲染与推进
    ============================================================ */
-let currentOptions = [];
-
 function renderStory(text, thinking) {
   const el = $('story');
   el.textContent = text;
@@ -477,24 +459,20 @@ function renderStory(text, thinking) {
 }
 
 function renderOptions(options) {
-  currentOptions = options.map(text => ({ text, delta: rollDelta(text) }));
-
+  const list = options.map(text => ({ text, delta: rollDelta(text) }));
   const wrap = $('btn-group');
   wrap.innerHTML = '';
   $('end').textContent = '';
   $('restartBtn').style.display = 'none';
 
-  currentOptions.forEach((opt, i) => {
+  list.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'btn';
-
     const left = document.createElement('span');
     left.textContent = (i + 1) + '. ' + opt.text;
-
     const right = document.createElement('span');
     right.className = 'delta';
     right.textContent = deltaText(opt.delta);
-
     btn.appendChild(left);
     btn.appendChild(right);
     btn.onclick = () => choose(opt);
@@ -505,13 +483,11 @@ function renderOptions(options) {
 async function step(playerAction) {
   if (S.ended) return;
 
-  if (AI.ready) {
-    // ===== AI 模式 =====
+  if (AI.ready && !AI.gaveUp) {
     try {
       const scene = await generateScene(playerAction);
       renderStory(scene.story, false);
       renderOptions(scene.options);
-
       if (playerAction) {
         context.push({ story: scene.story, choice: playerAction });
         if (context.length > 6) context.shift();
@@ -523,7 +499,6 @@ async function step(playerAction) {
     }
   }
 
-  // ===== 简化模式 =====
   const scene = renderFallbackScene();
   renderStory(scene.story, false);
   renderOptions(scene.options);
@@ -534,8 +509,7 @@ async function step(playerAction) {
 }
 
 function choose(opt) {
-  if (S.ended) return;
-  if (AI.generating) return;
+  if (S.ended || AI.generating) return;
 
   applyDelta(opt.delta);
   S.year += randInt(1, 3);
@@ -544,7 +518,6 @@ function choose(opt) {
   const ending = checkEnding();
   if (ending) { endGame(ending); return; }
 
-  // 立刻清空选项，防止连点
   $('btn-group').innerHTML = '';
   renderStory('正在推演…', true);
 
@@ -570,11 +543,9 @@ $('startBtn').onclick = () => {
   $('game').style.display = 'block';
   updateUI();
 
-  if (AI.loading) {
-    setBadge('模型加载中 · 先用简化模式，就绪后自动切换');
-  } else if (AI.ready) {
-    setBadge('AI 生成模式 · 已就绪', true);
-  }
+  if (AI.gaveUp) setBadge('简化模式');
+  else if (AI.loading) setBadge('模型加载中 · 先用简化模式，就绪后自动切换');
+  else if (AI.ready) setBadge('AI 生成模式 · 已就绪', true);
 
   renderStory('正在推演…', true);
   AI.generating = true;
