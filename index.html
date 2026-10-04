@@ -3,32 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>民国人生模拟器 · AI生成</title>
+<title>民国人生模拟器 · AI版</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎖️</text></svg>">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
   body { background:#f8f9fa; color:#222; padding:20px; max-width:700px; margin:0 auto; min-height:100vh; }
   .title { text-align:center; font-size:26px; margin:16px 0 4px; color:#333; }
-  .badge { text-align:center; font-size:12px; color:#8a9bab; margin-bottom:14px; letter-spacing:.5px; }
+  .badge { text-align:center; font-size:12px; color:#8a9bab; margin-bottom:12px; letter-spacing:.5px; }
   .badge.ai { color:#2c3e50; font-weight:600; }
-  .progress { display:none; position:relative; height:30px; background:#e9ecef; border-radius:10px; overflow:hidden; margin-bottom:8px; }
+  .progress { display:none; position:relative; height:28px; background:#e9ecef; border-radius:10px; overflow:hidden; margin-bottom:8px; }
   .progress.show { display:block; }
   .progress-bar { height:100%; width:0%; background:linear-gradient(90deg,#9bb4d0,#2c3e50); transition:width .3s ease; }
   .progress-text { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:#333; font-weight:500; }
-  .skip-row { display:none; text-align:center; margin-bottom:14px; }
+  .skip-row { display:none; text-align:center; margin-bottom:12px; }
   .skip-row.show { display:block; }
   .skip-row button { background:none; border:none; color:#8a9bab; font-size:12px; text-decoration:underline; cursor:pointer; }
-
-  .card, .status-wrap, .story-box { background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 8px #00000012; margin-bottom:16px; }
-  .story-box { padding:20px; line-height:1.75; font-size:16px; white-space:pre-wrap; min-height:100px; }
+  .card, .status-wrap, .story-box { background:#fff; border-radius:14px; padding:16px; box-shadow:0 2px 8px #00000012; margin-bottom:14px; }
+  .story-box { padding:20px; line-height:1.75; font-size:16px; white-space:pre-wrap; min-height:80px; }
   .story-box.thinking { color:#9aa5b1; font-style:italic; }
-
   .stat-item { margin:9px 0; }
   .stat-name { display:flex; justify-content:space-between; margin-bottom:4px; font-size:14px; color:#444; }
   .bar-bg { height:14px; background:#e9ecef; border-radius:99px; overflow:hidden; }
   .bar-fill { height:100%; transition:.3s ease; }
   .fame{background:#f5b041} .power{background:#e74c3c} .people{background:#3498db} .clique{background:#9b59b6}
-
   .btn { width:100%; padding:14px 16px; margin:8px 0; border:none; border-radius:12px; background:#fff; box-shadow:0 2px 6px #00000010; font-size:16px; text-align:left; cursor:pointer; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; color:#222; transition:.15s; }
   .btn:hover:not(:disabled){ background:#f5f8fc; }
   .btn:active:not(:disabled){ background:#eef2f7; }
@@ -36,13 +33,11 @@
   .btn.primary{ background:#2c3e50; color:#fff; justify-content:center; }
   .btn.primary:hover:not(:disabled){ background:#3a4d63; }
   .delta{ font-size:12px; color:#999; white-space:nowrap; padding-top:4px; }
-
   .field { margin-bottom:12px; }
   .field label { display:block; font-size:13px; color:#666; margin-bottom:5px; }
   .field input { width:100%; padding:11px 12px; border:1px solid #dfe3e8; border-radius:10px; font-size:15px; background:#fbfcfd; outline:none; }
   .field input:focus { border-color:#9bb4d0; background:#fff; }
   .hint { font-size:12px; color:#999; line-height:1.6; margin-top:10px; }
-
   .topbar { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; padding:0 4px; }
   .hero { font-size:17px; font-weight:600; color:#2c3e50; }
   .year { font-size:14px; color:#888; font-variant-numeric:tabular-nums; }
@@ -53,14 +48,14 @@
 <body>
 
 <h1 class="title">民国人生模拟器</h1>
-<div class="badge" id="badge">正在唤醒模型…</div>
+<div class="badge" id="badge">正在检查环境…</div>
 
 <div class="progress" id="progress">
   <div class="progress-bar" id="progressBar"></div>
   <span class="progress-text" id="progressText">加载中…</span>
 </div>
 <div class="skip-row" id="skipRow">
-  <button id="skipBtn">不等了，直接玩简化模式 →</button>
+  <button id="skipBtn">不等了，用简化模式 →</button>
 </div>
 
 <div id="setup" class="card">
@@ -70,7 +65,7 @@
   </div>
   <button class="btn primary" id="startBtn">开始人生</button>
   <p class="hint">
-    模型在后台下载（首次约 350MB，浏览器会缓存，第二次秒进）。
+    AI 模型在你的浏览器本地运行，首次约 265MB（从本站下载，国内可直接访问）。
     加载期间可以先玩简化模式，模型就绪后自动切换为 AI 生成。
   </p>
 </div>
@@ -118,30 +113,23 @@ const CN = { fame:'声望', power:'兵权', people:'民心', clique:'派系' };
 const pick = a => a[Math.floor(Math.random() * a.length)];
 const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 
-const SURNAMES = ['张','王','李','刘','陈','杨','黄','赵','周','吴','徐','孙','马','朱','胡','郭','何','高','林','罗','郑','梁','谢','宋','唐','许','韩','冯','邓','曹','彭','曾','萧','田','董','袁','潘','于','蔡','余','杜','叶'];
-const GIVEN = ['慕远','砚秋','仲卿','伯衡','季常','志清','克强','济民','绍武','振邦','云卿','少白','仲元','叔平','景明','耀庭','子昂','世昌','汉卿','梦熊','守义','允恭','文渊','雨农','仲甫','默存','雪松','清源','伯韬','季陶','子文','铁生','健侯','啸天','沛霖','怀瑾','慕韩','汝舟'];
+const SURNAMES = ['张','王','李','刘','陈','杨','黄','赵','周','吴','徐','孙','马','朱','胡','郭','何','高','林','罗','郑','梁','谢','宋','唐','许','韩','冯','邓','曹','彭','曾','萧','田','董','袁','潘','于','蔡','余','杜','叶','程','苏','魏','吕','丁','任','沈'];
+const GIVEN = ['慕远','砚秋','仲卿','伯衡','季常','志清','克强','济民','绍武','振邦','云卿','少白','仲元','叔平','景明','耀庭','子昂','世昌','汉卿','梦熊','守义','允恭','文渊','雨农','仲甫','默存','雪松','清源','伯韬','季陶','子文','铁生','健侯','啸天','沛霖','怀瑾','慕韩','汝舟','星槎'];
+const NPC_ROLES = ['参谋长','副官','老同学','旧部','同乡','幕僚','政敌','报馆主笔','商会会长','督军代表','党部要员','洋行买办'];
 const randomName = () => pick(SURNAMES) + pick(GIVEN);
+const randomNPC = () => pick(SURNAMES) + pick(GIVEN.slice(0, 30)) + '（' + pick(NPC_ROLES) + '）';
 
 const S = {
-  name: '',
-  year: 1911,
+  name: '', year: 1911,
   fame: 20, power: 15, people: 10, clique: 30,
-  flags: [],
-  ended: false
+  flags: [], used: [], ended: false
 };
 
-const AI = {
-  engine: null,
-  ready: false,
-  loading: false,
-  generating: false,
-  gaveUp: false
-};
-
+const AI = { engine: null, ready: false, loading: false, generating: false, gaveUp: false };
 const context = [];
 
 /* ============================================================
-   1. 后台加载模型（用 hf-mirror 镜像）
+   1. 后台加载模型（权重从本站，wasm 从官方 CDN）
    ============================================================ */
 function showProgress() { $('progress').classList.add('show'); }
 function hideProgress() { $('progress').classList.remove('show'); }
@@ -166,11 +154,10 @@ function giveUpAI(msg) {
   AI.loading = false;
   hideProgress();
   hideSkip();
-  setBadge(msg || '使用简化模式');
+  setBadge(msg || '简化模式');
 }
 
-// 用户点"不等了"
-$('skipBtn').onclick = () => giveUpAI('已跳过 AI 加载 · 使用简化模式');
+$('skipBtn').onclick = () => giveUpAI('已跳过 AI · 使用简化模式');
 
 (async function bootAI() {
   if (!navigator.gpu) {
@@ -180,47 +167,42 @@ $('skipBtn').onclick = () => giveUpAI('已跳过 AI 加载 · 使用简化模式
 
   AI.loading = true;
   showProgress();
-  updateProgress(0, '正在拉取模型索引…');
+  updateProgress(0, '正在准备加载…');
   showSkip();
 
-  // 40 秒无实质进展，自动提示可跳过
   let lastProgress = 0;
   const stallTimer = setInterval(() => {
     if (!AI.loading || AI.ready) return clearInterval(stallTimer);
     if (lastProgress === 0) {
       showSkip();
-      updateProgress(0, '网络较慢，可点下方链接直接玩简化模式');
+      updateProgress(0, '网络较慢，可点下方链接直接玩');
     }
-  }, 15000);
+  }, 20000);
 
   try {
     const webllm = await import('https://esm.run/@mlc-ai/web-llm');
-    const { CreateMLCEngine, modelLibURLPrefix, modelVersion } = webllm;
+    const { CreateMLCEngine, prebuiltAppConfig } = webllm;
 
-    // 关键：用 hf-mirror.com 替换 huggingface.co
+    const TARGET = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+
     const appConfig = {
-      model_list: [
-        {
-          model: "https://hf-mirror.com/mlc-ai/Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
-          model_id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
-          model_lib: modelLibURLPrefix + modelVersion + "/Qwen2.5-0.5B-Instruct-q4f16_1-ctx4k_cs1k-webgpu.wasm",
-          vram_required_MB: 944,
-          low_resource_required: false,
-          overrides: {
-            context_window_size: 4096,
-            prefill_chunk_size: 1024
-          }
-        }
-      ]
+      model_list: prebuiltAppConfig.model_list.map(m => {
+        if (m.model_id !== TARGET) return m;
+        return {
+          ...m,
+          // 关键：权重从本站加载，wasm 保持默认（官方 CDN）
+          model: './models/Qwen2.5-0.5B-Instruct-q4f16_1-MLC'
+        };
+      })
     };
 
-    AI.engine = await CreateMLCEngine('Qwen2.5-0.5B-Instruct-q4f16_1-MLC', {
+    AI.engine = await CreateMLCEngine(TARGET, {
       appConfig,
       initProgressCallback: (r) => {
         if (r.progress > lastProgress) lastProgress = r.progress;
         let label = r.text || '加载中…';
         label = label.replace(/Fetching param cache.*?(\d+)%/i, '下载模型权重 $1%');
-        label = label.replace(/Loading model from cache.*/i, '从缓存读取模型…');
+        label = label.replace(/Loading model from cache.*/i, '从缓存读取…');
         label = label.replace(/Loading model.*/i, '初始化模型…');
         updateProgress(r.progress || 0, label);
       }
@@ -243,18 +225,18 @@ $('skipBtn').onclick = () => giveUpAI('已跳过 AI 加载 · 使用简化模式
    2. AI 生成场景
    ============================================================ */
 const SYS_PROMPT =
-`你是《民国人生模拟器》的游戏主持人。根据玩家的处境，写一段剧情，然后给出三个选项。
+`你是《民国人生模拟器》的游戏主持人。根据玩家处境，写一段剧情，然后给出三个选项。
 
 写作要求：
 - 用第二人称"你"
 - 剧情 60-100 字，有画面感，自然带出年份与时代气息
-- 三个选项各 8-16 字，方向彼此不同（例如：强硬 / 笼络 / 观望）
-- 必须严格按下面格式输出，不要任何多余文字、不要解释、不要引号：
+- 三个选项各 8-16 字，方向彼此不同
+- 严格按下面格式输出，不要任何多余文字：
 
-【剧情】这里写剧情正文。
-【1】这里写第一个选项。
-【2】这里写第二个选项。
-【3】这里写第三个选项。`;
+【剧情】剧情正文。
+【1】第一个选项。
+【2】第二个选项。
+【3】第三个选项。`;
 
 function buildPrompt(playerAction) {
   const recent = context.slice(-2).map((c, i) =>
@@ -298,7 +280,6 @@ async function generateScene(playerAction) {
       storyEl.textContent = m[1].trim();
     }
   }
-
   storyEl.classList.remove('thinking');
   return parseScene(buf);
 }
@@ -326,42 +307,206 @@ function parseScene(raw) {
   }
 
   while (options.length < 3) {
-    options.push(pick([
-      '采取强硬手段，以力破局',
-      '结交各方，寻求外援',
-      '稳固根基，静待时机'
-    ]));
+    options.push(pick(['采取强硬手段，以力破局', '结交各方，寻求外援', '稳固根基，静待时机']));
   }
   options = options.slice(0, 3).map(o => o.replace(/^["'“”]|["'“”]$/g, '').slice(0, 24));
 
   if (!story) story = raw.replace(/【[^】]*】/g, '').trim().slice(0, 220) || '时局变幻，你必须做出抉择。';
-
   return { story, options };
 }
 
 /* ============================================================
-   3. 简化模式兜底
+   3. 简化模式（事件池）
    ============================================================ */
-const FALLBACK = [
-  { text: '{year}年，时局动荡。电报一封接一封送到案头，每一封都关系到身家性命。',
-    opts: ['果断出兵，抢占先机', '联络各方，稳固盟友', '静观其变，保存实力'] },
-  { text: '{year}年。军中粮饷见底，各方势力都在暗中拉拢你。一个选择，可能决定未来十年的位置。',
-    opts: ['接受拉拢，扩充人马', '拒绝依附，独立自主', '两面周旋，留条后路'] },
-  { text: '{year}年的一个深夜，一位旧友秘密来访，带来一份不能见光的密约。',
-    opts: ['签下密约，铤而走险', '婉言拒绝，划清界限', '暂不表态，探其虚实'] },
-  { text: '{year}年，报馆连日刊文抨击你的施政。街上已有学生聚集，气氛紧张。',
-    opts: ['封报抓人，强力压制', '约见主笔，好言安抚', '公开回应，澄清是非'] },
-  { text: '{year}年。一位老部下载誉而归，请求你为他麾下的伤残弟兄拨一笔抚恤。',
-    opts: ['如数拨付，安抚军心', '按例减半，节省开支', '当众褒奖，钱粮从缓'] }
+const EVENTS = [
+{ id:'open1911', from:1911, to:1911,
+  text:'1911年秋，武昌枪响，辛亥革命爆发。你正在日本陆军士官学校求学，国内革命风起云涌。\n有人劝你即刻归国建功，也有人劝你学成再归、厚积薄发。',
+  options:[
+    { text:'立刻回国，投身革命', delta:{fame:8,power:5,people:3,clique:2}, flags:['归国'], adv:1 },
+    { text:'完成学业，静观时局', delta:{fame:3,power:8,clique:5}, flags:['留日'], adv:2 }
+  ]
+},
+{ id:'e21', from:1915, to:1915,
+  text:'1915年，日本提出"二十一条"，举国激愤。袁世凯却加紧筹划称帝，各方暗流涌动。',
+  options:[
+    { text:'通电反对二十一条，博取舆论', delta:{fame:10,people:12,clique:-5}, adv:1 },
+    { text:'按兵不动，暗中观察风向', delta:{power:5,clique:5,people:-5}, adv:1 }
+  ]
+},
+{ id:'e_hu', from:1915, to:1917,
+  text:'袁世凯称帝，护国战争爆发。南方各省纷纷独立，你手中已有若干人马，必须表态。',
+  options:[
+    { text:'响应护国，通电讨袁', delta:{fame:12,people:10,power:-3,clique:5}, flags:['反袁'], adv:2 },
+    { text:'拥袁自保，趁机扩军', delta:{power:12,people:-10,clique:5,fame:-5}, adv:2 },
+    { text:'首鼠两端，保存实力', delta:{power:5,clique:-5,fame:-3}, adv:2 }
+  ]
+},
+{ id:'w_join', from:1917, to:1924,
+  text:'府院之争、张勋复辟、南北对峙……乱局之中，一位{npc}找上门来，邀你共图大事。',
+  options:[
+    { text:'与其结盟，扩充人马', delta:{power:12,clique:8,people:-5}, adv:2 },
+    { text:'婉拒，专注经营自己的地盘', delta:{people:6,power:3,clique:-6}, adv:2 },
+    { text:'反手将其吞并，收编其部', delta:{power:15,clique:-12,fame:-5,people:-5}, adv:2 }
+  ]
+},
+{ id:'w_money', from:1919, to:1926,
+  text:'军饷告急。{npc}提出三条路：加征田赋、向洋行借款、或截留关税。',
+  options:[
+    { text:'加征田赋', delta:{power:10,people:-15}, adv:2 },
+    { text:'向洋行借款，抵押路矿权', delta:{power:12,people:-8,fame:-5,clique:5}, adv:2 },
+    { text:'截留关税，硬扛中央', delta:{power:8,clique:-12,fame:-3}, adv:2 }
+  ]
+},
+{ id:'w_culture', from:1922, to:1927,
+  text:'新文化运动风起云涌，学生上街，报馆鼓噪。你的辖区里也出现了游行队伍。',
+  options:[
+    { text:'支持言论，拨款项办报兴学', delta:{fame:10,people:12,power:-5}, adv:2 },
+    { text:'下令戒严，压制学潮', delta:{power:8,people:-15,fame:-6}, adv:2 }
+  ]
+},
+{ id:'n_start', from:1926, to:1926,
+  text:'1926年夏，国民革命军誓师北伐。南方各路势力纷纷表态，你的抉择将决定未来十年的位置。',
+  options:[
+    { text:'通电响应，率部参加北伐', delta:{fame:15,people:10,power:8}, flags:['北伐'], adv:1 },
+    { text:'保存实力，观望不进', delta:{power:10,fame:-8,people:-5}, flags:['观望'], adv:2 },
+    { text:'投靠北洋，阻击北伐军', delta:{clique:8,power:8,fame:-10,people:-12}, flags:['北洋方'], adv:1 }
+  ]
+},
+{ id:'n_qingdang', from:1927, to:1928,
+  text:'1927年，宁汉分裂，清党之风骤起。各方都在看你的态度，血与火之间没有中间道路。',
+  options:[
+    { text:'坚决清党，向南京输诚', delta:{power:12,clique:15,people:-20,fame:-3}, flags:['清党'], adv:1 },
+    { text:'保护左派，主张团结', delta:{people:12,fame:8,clique:-15,power:-5}, adv:1 },
+    { text:'按兵不动，静待结果', delta:{power:5,clique:-5,fame:-5}, adv:1 }
+  ]
+},
+{ id:'g_war', from:1929, to:1930,
+  text:'1929年，蒋桂战争爆发；次年中原大战，百万大军厮杀于中原。你必须站队。',
+  options:[
+    { text:'拥蒋，出兵助战', delta:{clique:15,power:10,people:-8,fame:-3}, flags:['拥蒋'], adv:2 },
+    { text:'联冯阎反蒋', delta:{power:12,fame:5,clique:-10,people:-5}, flags:['反蒋'], adv:2 },
+    { text:'中立调停，保存实力', delta:{power:5,fame:3,clique:-8}, adv:2 }
+  ]
+},
+{ id:'g_eco', from:1930, to:1936,
+  text:'局势稍定。你的辖区面临选择：是修铁路办工厂，还是扩军备战？',
+  options:[
+    { text:'兴办实业，修路办学', delta:{people:15,fame:10,power:-5,clique:3}, adv:3 },
+    { text:'扩充军备，巩固防区', delta:{power:15,people:-8,fame:-3}, adv:2 },
+    { text:'兼而有之，量力而行', delta:{power:6,people:6,fame:5}, adv:3 }
+  ]
+},
+{ id:'g_xian', from:1936, to:1937,
+  text:'1936年冬，西安事变爆发。举国震动，各方势力都在等待你的通电。',
+  options:[
+    { text:'通电主张和平解决，拥护张杨', delta:{fame:10,people:12,clique:-8}, adv:1 },
+    { text:'通电讨伐张杨，力挺中央', delta:{clique:12,power:8,people:-10}, adv:1 },
+    { text:'沉默观望，静待结果', delta:{power:3,fame:-5,clique:-3}, adv:1 }
+  ]
+},
+{ id:'j_lugou', from:1937, to:1937,
+  text:'1937年7月7日，卢沟桥事变。平津危急，华北危急，整个民族到了最危险的时刻。',
+  options:[
+    { text:'通电请缨，率部北上抗日', delta:{fame:15,people:18,power:5,clique:3}, flags:['抗日'], adv:1 },
+    { text:'保存实力，退守后方', delta:{power:10,people:-18,fame:-12}, flags:['避战'], adv:1 }
+  ]
+},
+{ id:'j_capital', from:1938, to:1940,
+  text:'武汉失守，国民政府迁渝。大后方物资匮乏，通货膨胀日益严重。',
+  options:[
+    { text:'严惩贪腐，平抑物价', delta:{people:15,fame:12,clique:-12}, adv:2 },
+    { text:'睁一只眼闭一只眼，稳住内部', delta:{clique:10,people:-12,fame:-5}, adv:2 }
+  ]
+},
+{ id:'j_famine', from:1942, to:1944,
+  text:'1942年，中原大旱，赤地千里，饥民流离。而军粮征购指标仍层层加码。',
+  options:[
+    { text:'开仓放粮，减免征购', delta:{people:20,fame:12,power:-10}, adv:2 },
+    { text:'照额征粮，先保军队', delta:{power:10,people:-22,fame:-10}, adv:2 }
+  ]
+},
+{ id:'v_win', from:1945, to:1945,
+  text:'1945年8月，日本投降。举国欢腾，而你站在权力与命运的十字路口。',
+  options:[
+    { text:'主张和平建国，与各方共商国是', delta:{people:15,fame:12,clique:-8}, flags:['和平'], adv:1 },
+    { text:'抢占接收，扩充实力', delta:{power:15,clique:8,people:-15,fame:-8}, flags:['强硬'], adv:1 }
+  ]
+},
+{ id:'c_battle', from:1947, to:1949,
+  text:'战局急转直下。辽沈、淮海、平津——一个个地名变成噩耗传来。',
+  options:[
+    { text:'亲赴前线，力挽狂澜', delta:{fame:12,power:-8,people:5}, adv:1 },
+    { text:'保存实力，准备南撤', delta:{power:8,people:-8,fame:-8}, adv:1 },
+    { text:'秘密接触对方，筹划起义', delta:{people:15,fame:5,power:-15,clique:-15}, flags:['起义'], adv:1 }
+  ]
+},
+{ id:'c_final', from:1948, to:1949,
+  text:'长江北岸，百万大军云集。南京城内，人心惶惶，达官贵人纷纷南逃。',
+  options:[
+    { text:'死守南京，与城共存亡', delta:{fame:10,power:-15,people:-5}, adv:1 },
+    { text:'退守西南，图谋再起', delta:{power:5,fame:-8,people:-5}, adv:1 },
+    { text:'通电下野，出国流亡', delta:{fame:-10,power:-20,people:-5}, flags:['流亡'], adv:1 }
+  ]
+}
 ];
 
+const GENERIC = [
+{ text:'局势胶着。{npc}来访，带来一笔来路不明的军费，条件是你替他办一件事。',
+  options:[
+    { text:'答应，收下这笔钱', delta:{power:8,clique:6,people:-8,fame:-5}, adv:2 },
+    { text:'拒绝，并留个心眼', delta:{fame:6,people:5,power:-3}, adv:2 }
+  ]
+},
+{ text:'你的辖区闹了水灾。赈济要钱，修堤也要钱，而账上已经见底。',
+  options:[
+    { text:'挪用军费赈灾', delta:{people:15,fame:10,power:-10}, adv:2 },
+    { text:'先保军队，灾民自想办法', delta:{power:6,people:-15,fame:-8}, adv:2 }
+  ]
+},
+{ text:'报馆记者写了一篇对你颇为不利的报道，幕僚建议查封报馆。',
+  options:[
+    { text:'查封报馆，抓人问罪', delta:{power:6,people:-12,fame:-8}, adv:2 },
+    { text:'约见主笔，好言安抚', delta:{fame:8,people:10,power:-3}, adv:2 },
+    { text:'不理不睬，任其自生自灭', delta:{fame:-3,people:-3}, adv:2 }
+  ]
+},
+{ text:'邻省发生兵变，溃兵数千涌入你的防区，烧杀抢掠。',
+  options:[
+    { text:'武力清剿，一个不留', delta:{power:10,people:-8,fame:3}, adv:2 },
+    { text:'招抚收编，编入麾下', delta:{power:12,clique:-5,people:-10}, adv:2 }
+  ]
+}
+];
+
+function eligible() {
+  return EVENTS.filter(e =>
+    !S.used.includes(e.id) &&
+    S.year >= e.from && S.year <= e.to &&
+    (!e.cond || e.cond(S))
+  );
+}
+
+function nextEvent() {
+  const pool = eligible();
+  if (!pool.length) return pick(GENERIC);
+  const soon = pool.filter(e => e.from <= S.year + 1);
+  return pick(soon.length ? soon : pool);
+}
+
 function renderFallbackScene() {
-  const f = pick(FALLBACK);
-  return { story: f.text.replace('{year}', S.year), options: f.opts };
+  const ev = nextEvent();
+  if (ev.id) S.used.push(ev.id);
+  return {
+    story: ev.text.replace(/\{name\}/g, S.name).replace(/\{npc\}/g, randomNPC()),
+    options: ev.options.map(o => o.text),
+    deltas: ev.options.map(o => o.delta),
+    flags: ev.options.map(o => o.flags || []),
+    advances: ev.options.map(o => o.adv || 2)
+  };
 }
 
 /* ============================================================
-   4. 数值计算
+   4. 数值计算（AI 模式下，从选项文本推）
    ============================================================ */
 const KW = {
   power: ['兵','军','战','攻','打','武','枪','炮','部队','嫡系','扩军','出征','征讨','缴械','收编','兵变','强硬','压制','镇压','铁腕'],
@@ -370,16 +515,15 @@ const KW = {
   clique: ['派','系','党','结','盟','拉拢','联合','联络','依附','投','输诚','靠拢','共','周旋','结交']
 };
 
-function rollDelta(optionText) {
+function rollDelta(text) {
   const score = { fame:0, power:0, people:0, clique:0 };
   for (const k of KEYS) {
-    for (const w of KW[k]) if (optionText.includes(w)) score[k] += 3;
+    for (const w of KW[k]) if (text.includes(w)) score[k] += 3;
   }
   const sorted = KEYS.map(k => ({ k, v: score[k] })).sort((a, b) => b.v - a.v);
   const main = sorted[0].v > 0 ? sorted[0].k : pick(KEYS);
   let sub = sorted[1] && sorted[1].k !== main && sorted[1].v > 0
-    ? sorted[1].k
-    : pick(KEYS.filter(k => k !== main));
+    ? sorted[1].k : pick(KEYS.filter(k => k !== main));
   const cost = pick(KEYS.filter(k => k !== main));
 
   const d = { fame:0, power:0, people:0, clique:0 };
@@ -427,10 +571,16 @@ function endingByStats(prefix) {
   const { fame, power, people, clique } = S;
   const total = fame + power + people + clique;
   let title, body;
+
+  if (S.flags.includes('起义')) {
+    return { title:'【顺时应变结局】',
+      body: prefix + '\n\n你选择了顺应大势，率部起义。此后虽不再执掌权柄，却在新的时代里得以善终。\n史书上关于你的那一页，评价意外地温和。' };
+  }
   if (S.flags.includes('流亡')) {
     return { title:'【海外流亡结局】',
       body: prefix + '\n\n你登上了南下的飞机，此后半生寓居异国。\n每到夜深，总想起当年长江上的雾。' };
   }
+
   if (power >= 70 && people >= 70 && fame >= 70) {
     title = '【中兴名臣结局】'; body = '你手握重兵而心系黎庶，声望遍及朝野。\n后人修史，将你与那些力挽狂澜的名字并列。';
   } else if (power >= 70 && people < 30) {
@@ -452,20 +602,28 @@ function endingByStats(prefix) {
 /* ============================================================
    6. 渲染与推进
    ============================================================ */
+let currentOptions = [];
+
 function renderStory(text, thinking) {
   const el = $('story');
   el.textContent = text;
   el.classList.toggle('thinking', !!thinking);
 }
 
-function renderOptions(options) {
-  const list = options.map(text => ({ text, delta: rollDelta(text) }));
+function renderOptions(options, deltas, flags, advances) {
+  currentOptions = options.map((text, i) => ({
+    text,
+    delta: deltas ? deltas[i] : rollDelta(text),
+    flags: flags ? flags[i] : [],
+    adv: advances ? advances[i] : randInt(1, 3)
+  }));
+
   const wrap = $('btn-group');
   wrap.innerHTML = '';
   $('end').textContent = '';
   $('restartBtn').style.display = 'none';
 
-  list.forEach((opt, i) => {
+  currentOptions.forEach((opt, i) => {
     const btn = document.createElement('button');
     btn.className = 'btn';
     const left = document.createElement('span');
@@ -495,13 +653,13 @@ async function step(playerAction) {
       return;
     } catch (e) {
       console.error('AI 生成失败，转兜底:', e);
-      setBadge('AI 生成异常 · 使用简化模式');
+      setBadge('AI 异常 · 使用简化模式');
     }
   }
 
   const scene = renderFallbackScene();
   renderStory(scene.story, false);
-  renderOptions(scene.options);
+  renderOptions(scene.options, scene.deltas, scene.flags, scene.advances);
   if (playerAction) {
     context.push({ story: scene.story, choice: playerAction });
     if (context.length > 6) context.shift();
@@ -512,7 +670,8 @@ function choose(opt) {
   if (S.ended || AI.generating) return;
 
   applyDelta(opt.delta);
-  S.year += randInt(1, 3);
+  if (opt.flags) opt.flags.forEach(f => S.flags.push(f));
+  S.year += opt.adv;
   updateUI();
 
   const ending = checkEnding();
@@ -544,7 +703,7 @@ $('startBtn').onclick = () => {
   updateUI();
 
   if (AI.gaveUp) setBadge('简化模式');
-  else if (AI.loading) setBadge('模型加载中 · 先用简化模式，就绪后自动切换');
+  else if (AI.loading) setBadge('模型加载中 · 先用简化模式');
   else if (AI.ready) setBadge('AI 生成模式 · 已就绪', true);
 
   renderStory('正在推演…', true);
